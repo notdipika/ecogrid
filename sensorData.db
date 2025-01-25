@@ -1,0 +1,38 @@
+import sqlite3
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Connect to the database
+DB_NAME = "sensor_data.db"
+conn = sqlite3.connect(DB_NAME)
+
+# Load sensor data
+query = "SELECT * FROM sensor_data"
+df = pd.read_sql_query(query, conn)
+
+# Convert timestamp to datetime
+df['timestamp'] = pd.to_datetime(df['timestamp'])
+
+# Plot the data
+plt.figure(figsize=(10, 6))
+
+# Plot temperature
+plt.plot(df['timestamp'], df['temperature'], label="Temperature (°C)", color='red')
+
+# Plot humidity
+plt.plot(df['timestamp'], df['humidity'], label="Humidity (%)", color='blue')
+
+# Plot LDR
+plt.plot(df['timestamp'], df['ldr'], label="LDR Value", color='green')
+
+plt.title("Sensor Data Over Time")
+plt.xlabel("Timestamp")
+plt.ylabel("Sensor Values")
+plt.legend()
+plt.grid(True)
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+# Close the connection
+conn.close()

@@ -1,24 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ESP32 Sensor Data Visualization</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Sensor Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-  <h1>ESP32 Sensor Data Visualization</h1>
-  
-  <div>
-    <h2>LDR Sensor Value Over Time</h2>
-    <!-- Embed Plotly Chart -->
-    {{ graph_html | safe }}
-  </div>
+    <div class="container">
+        <h1>IoT Sensor Dashboard</h1>
 
-  <div>
-    <h2>Temperature and Humidity Over Time</h2>
-    <!-- Embed Plotly Chart -->
-    {{ graph_html2 | safe }}
-  </div>
+        <div class="sensor-data">
+            <h2>Latest Sensor Data</h2>
+            {% if data %}
+            <p><strong>LDR Value:</strong> {{ data[0] }}</p>
+            <p><strong>Temperature:</strong> {{ data[1] }} °C</p>
+            <p><strong>Humidity:</strong> {{ data[2] }} %</p>
+            <p><strong>Timestamp:</strong> {{ data[3] }}</p>
+            {% else %}
+            <p>No sensor data available.</p>
+            {% endif %}
+        </div>
+
+        <div class="alerts">
+            <h2>Recent Alerts</h2>
+            {% if alerts %}
+            <ul>
+                {% for alert in alerts %}
+                <li>{{ alert[1] }} - {{ alert[0] }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>No alerts available.</p>
+            {% endif %}
+        </div>
+    </div>
 </body>
 </html>
