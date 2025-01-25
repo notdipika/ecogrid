@@ -3,37 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IoT Sensor Dashboard</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <title>IoT Sensor Dashboard with Voice and Text Commands</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .sensor-data {
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .on {
+            background-color: #28a745;
+            color: white;
+        }
+        .off {
+            background-color: #dc3545;
+            color: white;
+        }
+        .voice-feedback {
+            margin-top: 20px;
+            font-style: italic;
+        }
+        .alerts {
+            margin-top: 20px;
+        }
+        .alerts ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .alerts li {
+            padding: 5px;
+            background: #f0f0f0;
+            border-radius: 3px;
+            margin-bottom: 5px;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>IoT Sensor Dashboard</h1>
-
+        
+        <!-- Sensor Data Display -->
         <div class="sensor-data">
-            <h2>Latest Sensor Data</h2>
-            {% if data %}
-            <p><strong>LDR Value:</strong> {{ data[0] }}</p>
-            <p><strong>Temperature:</strong> {{ data[1] }} °C</p>
-            <p><strong>Humidity:</strong> {{ data[2] }} %</p>
-            <p><strong>Timestamp:</strong> {{ data[3] }}</p>
-            {% else %}
-            <p>No sensor data available.</p>
-            {% endif %}
+            <h3>Temperature: <span id="temperature">--</span> °C</h3>
+            <h3>Humidity: <span id="humidity">--</span> %</h3>
+            <h3>LDR Value: <span id="ldr-value">--</span></h3>
+            <h3>Timestamp: <span id="timestamp">--</span></h3>
         </div>
 
+        <!-- Control Buttons -->
+        <div class="controls">
+            <button class="on" onclick="sendCommand('Turn on the LED')">Turn LED On</button>
+            <button class="off" onclick="sendCommand('Turn off the LED')">Turn LED Off</button>
+        </div>
+
+        <!-- Voice Command Section -->
+        <div class="voice-controls">
+            <h3>Voice Commands</h3>
+            <button onclick="startListening()">🎤 Start Voice Command</button>
+            <p class="voice-feedback" id="voice-feedback"></p>
+        </div>
+
+        <!-- Text Command Section -->
+        <div class="text-commands">
+            <h3>Text Commands</h3>
+            <input type="text" id="text-command" placeholder="Type a command here">
+            <button onclick="processTextCommand()">Submit</button>
+        </div>
+
+        <!-- Recent Alerts -->
         <div class="alerts">
             <h2>Recent Alerts</h2>
-            {% if alerts %}
-            <ul>
-                {% for alert in alerts %}
-                <li>{{ alert[1] }} - {{ alert[0] }}</li>
-                {% endfor %}
+            <ul id="alerts-list">
+                <!-- Alerts will be populated here -->
             </ul>
-            {% else %}
-            <p>No alerts available.</p>
-            {% endif %}
         </div>
     </div>
+
+    <script>
+        // Fetching Sensor Data
+        function fetchSensorData() {
+            axios.get('/get_sensor_data')
+                .then(response => {
+                    const { temperature, humidity, ldr, timestamp, error } = response.data;
+                    if (!error) {
+                        document.getElementById('temperature').textContent = temperature.toFixed(1);
+                        document.getElementById('humidity').textContent = humidity.toFixed(1);
+                        document.getElementById('ldr-value').textContent = ldr;
+                        document.getElementById('timestamp').textContent = timestamp;
+                    } else {
+                        console.error(error);
+                    }
+                })
+                .catch(err => console.error('Error fetching sensor data:', err));
+        }
+
+        // Sending Command to Flask Server
+        function sendCommand(command) {
+            axios.post('/process_command', { command })
+                .then(response => {
+                    alert(response.data.message || 'Command processed successfully.');
+                })
+                .catch(err => console.error('Error processing command:', err));
+        }
+
+        // Voice Command Functionality
+        function startListening() {
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                document.getElementById('voice-feedback').textContent = 'Listening for commands...';
+            };
+
+            recognition.onresult = (event) => {
+                const command = event.results[0][0].transcript;
+                document.getElementById('voice-feedback').textContent = `You said: "${command}"`;
+                sendCommand(command);
+            };
+
+            recognition.onerror = (event) => {
+                document.getElementById('voice-feedback').textContent = `Error: ${event.error}`;
+            };
+
+            recognition.start();
+        }
+
+        // Text Command Processing
+        function processTextCommand() {
+            const command = document.getElementById('text-command').value;
+            if (command) {
+                sendCommand(command);
+            }
+        }
+
+        // Fetching Alerts
+        function fetchAlerts() {
+            axios.get('/get_alerts')
+                .then(response => {
+                    const alerts = response.data.alerts;
+                    const alertsList = document.getElementById('alerts-list');
+                    alertsList.innerHTML = ''; // Clear previous alerts
+
+                    if (alerts.length > 0) {
+                        alerts.forEach(alert => {
+                            const li = document.createElement('li');
+                            li.textContent = `${alert[1]} - ${alert[0]}`;
+                            alertsList.appendChild(li);
+                        });
+                    } else {
+                        alertsList.innerHTML = '<li>No alerts available.</li>';
+                    }
+                })
+                .catch(err => console.error('Error fetching alerts:', err));
+        }
+
+        // Periodically fetch sensor data
+        setInterval(fetchSensorData, 5000);
+        fetchSensorData(); 
+
+        // Periodically fetch alerts
+        setInterval(fetchAlerts, 5000);
+        fetchAlerts();
+    </script>
 </body>
 </html>

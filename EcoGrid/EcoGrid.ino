@@ -2,31 +2,26 @@
 #include <DHT.h>
 #include <Wire.h>
 #include <HTTPClient.h>
-#include <LiquidCrystal_I2C.h>  // Include the library for the LCD
+#include <LiquidCrystal_I2C.h>  
 
 const char* ssid = "your_wifi_ssid";
 const char* password = "your_wifi_password";
-const char* serverName = "http://<Flask_Server_IP>/sensor_data";  // Replace with your Flask server IP
+const char* serverName =  "http://127.0.0.1/sensor_data";
 
-DHT dht(4, DHT11);  // DHT11 sensor on pin 4
-int ldrPin = 34;     // LDR sensor connected to pin 34
+DHT dht(4, DHT11);    
 
-// MQ2 Smoke sensor setup
-#define MQ2_SENSOR_PIN 34  // ADC pin for MQ2 (change as needed)
+#define MQ2_SENSOR_PIN 34  
 
-int gasThreshold = 35;  // Adjust the threshold for gas detection
+int gasThreshold = 35;  
 
-// LCD setup: I2C address 0x27, 16 columns, 2 rows
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 void setup() {
   Serial.begin(115200);
   WiFi.begin(ssid, password);
   dht.begin();
-  
-  // Initialize LCD
-  lcd.begin();
-  lcd.backlight();  // Turn on the backlight of the LCD
+  lcd.begin(16, 2);
+  lcd.backlight();  
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
@@ -37,33 +32,26 @@ void setup() {
 }
 
 void loop() {
-  int ldrValue = analogRead(ldrPin);  // Read the LDR value
-
-  // Read temperature and humidity
   float temperature = dht.readTemperature();
   float humidity = dht.readHumidity();
 
-  // Read smoke (gas) level from MQ2 sensor
-  int gasValue = analogRead(MQ2_SENSOR_PIN);  // Reading from the gas sensor pin
+  int gasValue = analogRead(MQ2_SENSOR_PIN);  
 
-  // Check for gas and high temperature
-  if (gasValue > gasThreshold || temperature > 30) {  // Assuming gas value above threshold or temperature over 30°C triggers an alert
+  if (gasValue > gasThreshold || temperature > 30) {  
     sendAlert(gasValue, temperature);
   }
 
-  // Display temperature and humidity on the LCD
   lcd.clear();
-  lcd.setCursor(0, 0);  // Set cursor to the first line
+  lcd.setCursor(0, 0);
   lcd.print("Temp: ");
   lcd.print(temperature);
   lcd.print(" C");
 
-  lcd.setCursor(0, 1);  // Set cursor to the second line
+  lcd.setCursor(0, 1);
   lcd.print("Humidity: ");
   lcd.print(humidity);
   lcd.print(" %");
 
-  // Send data to Flask server
   if(WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
     http.begin(serverName);
@@ -82,7 +70,7 @@ void loop() {
     http.end();
   }
 
-  delay(10000);  // Delay between readings (10 seconds)
+  delay(10000); 
 }
 
 void sendAlert(int gasLevel, float temp) {
@@ -90,18 +78,15 @@ void sendAlert(int gasLevel, float temp) {
     HTTPClient http;
     String alertMessage = "Alert! ";
 
-    // Check for gas alert
     if (gasLevel > gasThreshold) {
       alertMessage += "Gas leak detected. ";
     }
 
-    // Check for temperature alert
     if (temp > 30) {
       alertMessage += "High temperature detected. ";
     }
 
-    // Send the alert message via a POST request
-    String serverAlertURL = "http://<Flask_Server_IP>/alert";  // Replace with your Flask server's alert endpoint
+    String serverAlertURL = "http://127.0.0.1/sensor_data/alert";  
     http.begin(serverAlertURL);
 
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
