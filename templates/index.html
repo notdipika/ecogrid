@@ -1,136 +1,105 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EcoGrid</title>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <link rel="stylesheet" href="../static/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sensor Data</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    .data-display {
+      margin-bottom: 20px;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>EcoGrid</h1>
+  <h1>Real-Time Sensor Data</h1>
 
-        <!-- Sensor Data Section -->
-        <div class="section">
-            <h2>Real-Time Sensor Data</h2>
-            <p>Temperature: <span id="temperature">--</span> °C</p>
-            <p>Humidity: <span id="humidity">--</span> %</p>
-            <p>Gas Level: <span id="gas-level">--</span></p>
-            <p>Water Level: <span id="water-level">--</span></p>
-            <p>Motion Detected: <span id="motion">--</span></p>
-        </div>
+  <!-- Real-time data display -->
+  <div class="data-display">
+    <p>Temperature: <span id="temperature">--</span> °C</p>
+    <p>Humidity: <span id="humidity">--</span> %</p>
+    <p>Gas Level: <span id="gas-level">--</span></p>
+    <p>Water Level: <span id="water-level">--</span></p>
+    <p>Motion Detected: <span id="motion">--</span></p>
+  </div>
 
-        <!-- Manual Controls Section -->
-        <div class="section">
-            <h2>Manual Controls</h2>
-            <button class="on" onclick="sendCommand('Turn on the light')">Turn On Light</button>
-            <button class="off" onclick="sendCommand('Turn off the light')">Turn Off Light</button>
-        </div>
+  <!-- Graph for sensor data -->
+  <h2>Sensor Data Trends</h2>
+  <canvas id="sensorChart" width="400" height="200"></canvas>
 
-        <!-- Voice Command Section -->
-        <div class="section">
-            <h2>Voice Commands</h2>
-            <button onclick="startVoiceCommand()">🎤 Start Listening</button>
-            <p class="voice-feedback" id="voice-feedback"></p>
-        </div>
+  <script>
+    // Replace with your IoT device's endpoint URL
+    const apiUrl = 'http://192.168.x.x/sensor_data'; // Example IoT device URL
 
-        <!-- Text Command Section -->
-        <div class="section">
-            <h2>Text Commands</h2>
-            <input type="text" id="text-command" placeholder="Type your command">
-            <button onclick="processTextCommand()">Submit</button>
-        </div>
+    // Chart.js setup
+    const ctx = document.getElementById('sensorChart').getContext('2d');
+    const sensorChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [], // X-axis labels (timestamps)
+        datasets: [
+          {
+            label: 'Temperature (°C)',
+            data: [],
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 2,
+            fill: false,
+          },
+          {
+            label: 'Humidity (%)',
+            data: [],
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 2,
+            fill: false,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        scales: {
+          x: {
+            type: 'time',
+            time: {
+              unit: 'second',
+            },
+          },
+        },
+      },
+    });
 
-        <!-- Alerts Section -->
-        <div class="alerts section">
-            <h2>Recent Alerts</h2>
-            <ul id="alerts-list">
-                <li>No alerts yet.</li>
-            </ul>
-        </div>
-    </div>
+    // Fetch sensor data periodically and update the DOM and chart
+    async function fetchSensorData() {
+      try {
+        const response = await fetch(apiUrl); // Fetch sensor data from the device
+        const data = await response.json();
 
-    <script>
-        // Fetch and update sensor data every 5 seconds
-        function fetchSensorData() {
-            axios.get('/sensor_data')
-                .then(response => {
-                    const { temperature, humidity, gas_level, water_level, motion_detected } = response.data;
-                    document.getElementById('temperature').innerText = temperature || '--';
-                    document.getElementById('humidity').innerText = humidity || '--';
-                    document.getElementById('gas-level').innerText = gas_level || '--';
-                    document.getElementById('water-level').innerText = water_level || '--';
-                    document.getElementById('motion').innerText = motion_detected ? 'Yes' : 'No';
-                })
-                .catch(error => console.error('Error fetching sensor data:', error));
-        }
+        // Update the DOM
+        document.getElementById('temperature').innerText = data.temperature || '--';
+        document.getElementById('humidity').innerText = data.humidity || '--';
+        document.getElementById('gas-level').innerText = data.gas_level || '--';
+        document.getElementById('water-level').innerText = data.water_level || '--';
+        document.getElementById('motion').innerText = data.motion_detected ? 'Yes' : 'No';
 
-        // Fetch alerts every 5 seconds
-        function fetchAlerts() {
-            axios.get('/alerts')
-                .then(response => {
-                    const alerts = response.data.alerts || [];
-                    const alertsList = document.getElementById('alerts-list');
-                    alertsList.innerHTML = '';
+        // Update the chart
+        const currentTime = new Date().toLocaleTimeString();
+        sensorChart.data.labels.push(currentTime); // Add current time to X-axis
+        sensorChart.data.datasets[0].data.push(data.temperature); // Add temperature data
+        sensorChart.data.datasets[1].data.push(data.humidity); // Add humidity data
+        sensorChart.update();
+      } catch (error) {
+        console.error('Error fetching sensor data:', error);
+      }
+    }
 
-                    if (alerts.length > 0) {
-                        alerts.forEach(alert => {
-                            const li = document.createElement('li');
-                            li.textContent = `${alert.timestamp} - ${alert.message}`;
-                            alertsList.appendChild(li);
-                        });
-                    } else {
-                        alertsList.innerHTML = '<li>No alerts available.</li>';
-                    }
-                })
-                .catch(error => console.error('Error fetching alerts:', error));
-        }
-
-        // Send command to server
-        function sendCommand(command) {
-            axios.post('/command', { command })
-                .then(response => alert(response.data.message || 'Command sent successfully!'))
-                .catch(error => console.error('Error sending command:', error));
-        }
-
-        // Handle voice commands
-        function startVoiceCommand() {
-            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-            recognition.lang = 'en-US';
-
-            recognition.onstart = () => {
-                document.getElementById('voice-feedback').textContent = 'Listening...';
-            };
-
-            recognition.onresult = (event) => {
-                const command = event.results[0][0].transcript;
-                document.getElementById('voice-feedback').textContent = `Command received: "${command}"`;
-                sendCommand(command);
-            };
-
-            recognition.onerror = (event) => {
-                document.getElementById('voice-feedback').textContent = `Error: ${event.error}`;
-            };
-
-            recognition.start();
-        }
-
-        // Handle text commands
-        function processTextCommand() {
-            const command = document.getElementById('text-command').value.trim();
-            if (command) {
-                sendCommand(command);
-            } else {
-                alert('Please enter a valid command.');
-            }
-        }
-
-        // Initialize periodic updates
-        setInterval(fetchSensorData, 5000); // Sensor data every 5 seconds
-        setInterval(fetchAlerts, 5000);     // Alerts every 5 seconds
-        fetchSensorData();
-        fetchAlerts();
-    </script>
+    // Fetch data every 5 seconds
+    setInterval(fetchSensorData, 5000);
+    fetchSensorData(); // Initial fetch
+  </script>
 </body>
 </html>
+

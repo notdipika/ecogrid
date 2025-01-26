@@ -5,8 +5,8 @@
 #include <LiquidCrystal_I2C.h>
 
 // WiFi credentials
-const char* ssid = "titan";
-const char* password = "teamtitan";
+const char* ssid = "zang";
+const char* password = "gauravshah";
 
 // Server URLs
 const char* commandServer = "http://192.168.1.100:5000/get_command";
@@ -18,13 +18,13 @@ const char* alertServer = "http://192.168.1.100:5000/alert";
 #define ULTRASONIC_ECHO_PIN 21
 #define MQ2_SENSOR_PIN 34
 #define PIR_SENSOR_PIN 2
-#define LED_PIN 32
+#define LED_PIN 13
 #define DHT_PIN 4
 #define LIGHT_PIN 23
 
 // Thresholds
 int gasThreshold = 35;
-int waterLevelThreshold = 10; // Water level threshold (in cm)
+int waterLevelThreshold = 10; 
 
 // DHT sensor setup
 DHT dht(DHT_PIN, DHT11);
@@ -58,7 +58,7 @@ void setup() {
 
 void loop() {
   if (WiFi.status() == WL_CONNECTED) {
-    fetchCommand();
+    // fetchCommand();
     sendSensorData();
     checkMotion();
     checkWaterLevel();
