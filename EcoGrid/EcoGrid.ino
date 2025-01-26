@@ -5,8 +5,8 @@
 #include <LiquidCrystal_I2C.h>
 
 // WiFi credentials
-const char* ssid = "zang";
-const char* password = "gauravshah";
+const char* ssid = "noname";
+const char* password = "hello123";
 
 // Server URLs
 const char* commandServer = "http://192.168.1.100:5000/get_command";
